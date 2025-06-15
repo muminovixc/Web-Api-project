@@ -1,8 +1,8 @@
 package com.np.webapiapp.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,154 +12,165 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.np.webapiapp.data.model.Dataset
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.np.webapiapp.ui.viewmodel.DatasetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatasetDetailScreen(
-    dataset: Dataset,
-    viewModel: DatasetViewModel,
+    datasetId: String,
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: DatasetViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val isFavorite = uiState.favoriteDatasets.any { it.id == dataset.id }
+    val dataset = uiState.selectedDataset
+
+    LaunchedEffect(datasetId) {
+        viewModel.loadDatasetDetails(datasetId)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(dataset.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(dataset?.title ?: "Dataset Details") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            viewModel.toggleFavorite(dataset.id, !isFavorite)
+                    dataset?.let { ds ->
+                        IconButton(
+                            onClick = { viewModel.toggleFavorite(ds.id, !ds.isFavorite) }
+                        ) {
+                            Icon(
+                                imageVector = if (ds.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (ds.isFavorite) "Remove from favorites" else "Add to favorites"
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            val shareIntent = android.content.Intent().apply {
-                                action = android.content.Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(
-                                    android.content.Intent.EXTRA_TEXT,
-                                    "Check out this dataset: ${dataset.title}\n${dataset.description}"
-                                )
+                        IconButton(
+                            onClick = {
+                                val shareIntent = android.content.Intent().apply {
+                                    action = android.content.Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, ds.title)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share dataset"))
                             }
-                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Dataset"))
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = "Share")
                         }
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
                     }
                 }
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Text(
-                    text = dataset.description,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-
-            item {
-                Text(
-                    text = "Organization",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        } else {
+            dataset?.let { ds ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
+                    Text(
+                        text = ds.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    ds.description?.let { description ->
                         Text(
-                            text = dataset.organization.title,
-                            style = MaterialTheme.typography.titleSmall
+                            text = description,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
+                    }
+
+                    ds.organization?.let { org ->
                         Text(
-                            text = dataset.organization.description,
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "Organization: $org",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
+                    }
+
+                    Text(
+                        text = "Resources",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+
+                    ds.resources.forEach { resource ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Text(
+                                    text = resource.name,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = "Format: ${resource.format}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = resource.url,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    ds.tags.takeIf { it.isNotEmpty() }?.let { tags ->
+                        Text(
+                            text = "Tags",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            tags.forEach { tag ->
+                                AssistChip(
+                                    onClick = { },
+                                    label = { Text(tag) }
+                                )
+                            }
+                        }
                     }
                 }
             }
+        }
 
-            item {
-                Text(
-                    text = "Resources",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            items(dataset.resources) { resource ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = resource.name,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = resource.description,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Format: ${resource.format}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Last modified: ${resource.last_modified}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+        uiState.error?.let { error ->
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                action = {
+                    TextButton(onClick = { viewModel.clearError() }) {
+                        Text("Dismiss")
                     }
                 }
-            }
-
-            item {
-                Text(
-                    text = "Tags",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    dataset.tags.forEach { tag ->
-                        AssistChip(
-                            onClick = { },
-                            label = { Text(tag.display_name) }
-                        )
-                    }
-                }
+            ) {
+                Text(error)
             }
         }
     }

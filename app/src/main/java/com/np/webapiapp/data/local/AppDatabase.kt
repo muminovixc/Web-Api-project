@@ -5,11 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.np.webapiapp.data.local.converters.DateConverter
-import com.np.webapiapp.data.local.converters.ListConverter
+import com.np.webapiapp.data.local.converters.Converters
 
-@Database(entities = [DatasetEntity::class], version = 1, exportSchema = false)
-@TypeConverters(DateConverter::class, ListConverter::class)
+@Database(
+    entities = [DatasetEntity::class],
+    version = 1,
+    exportSchema = false
+)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun datasetDao(): DatasetDao
 

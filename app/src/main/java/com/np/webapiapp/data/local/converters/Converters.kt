@@ -3,53 +3,30 @@ package com.np.webapiapp.data.local.converters
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.np.webapiapp.data.model.Dataset
-import java.util.Date
+import com.np.webapiapp.data.local.ResourceEntity
 
-class DateConverter {
-    @TypeConverter
-    fun fromTimestamp(value: Long?): Date? {
-        return value?.let { Date(it) }
-    }
-
-    @TypeConverter
-    fun dateToTimestamp(date: Date?): Long? {
-        return date?.time
-    }
-}
-
-class ListConverter {
+class Converters {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromResourceList(value: List<Dataset.Resource>): String {
-        return gson.toJson(value)
-    }
-
-    @TypeConverter
-    fun toResourceList(value: String): List<Dataset.Resource> {
-        val listType = object : TypeToken<List<Dataset.Resource>>() {}.type
+    fun fromString(value: String): List<String> {
+        val listType = object : TypeToken<List<String>>() {}.type
         return gson.fromJson(value, listType)
     }
 
     @TypeConverter
-    fun fromTagList(value: List<Dataset.Tag>): String {
-        return gson.toJson(value)
+    fun fromList(list: List<String>): String {
+        return gson.toJson(list)
     }
 
     @TypeConverter
-    fun toTagList(value: String): List<Dataset.Tag> {
-        val listType = object : TypeToken<List<Dataset.Tag>>() {}.type
+    fun fromResourceList(value: String): List<ResourceEntity> {
+        val listType = object : TypeToken<List<ResourceEntity>>() {}.type
         return gson.fromJson(value, listType)
     }
 
     @TypeConverter
-    fun fromOrganization(value: Dataset.Organization): String {
-        return gson.toJson(value)
-    }
-
-    @TypeConverter
-    fun toOrganization(value: String): Dataset.Organization {
-        return gson.fromJson(value, Dataset.Organization::class.java)
+    fun toResourceList(list: List<ResourceEntity>): String {
+        return gson.toJson(list)
     }
 } 

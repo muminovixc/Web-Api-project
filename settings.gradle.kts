@@ -15,5 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Web-Api-project"
-include(":app")
- 
+include(":app") 

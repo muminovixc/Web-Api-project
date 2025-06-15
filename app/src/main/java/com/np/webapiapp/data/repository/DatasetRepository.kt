@@ -6,74 +6,49 @@ import com.np.webapiapp.data.local.DatasetEntity
 import com.np.webapiapp.data.model.Dataset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.Date
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class DatasetRepository(
+@Singleton
+class DatasetRepository @Inject constructor(
     private val api: OpenDataPortalApi,
-    private val dao: DatasetDao,
-    private val apiKey: String
+    private val datasetDao: DatasetDao
 ) {
     fun getAllDatasets(): Flow<List<Dataset>> {
-        return dao.getAllDatasets().map { entities ->
+        return datasetDao.getAllDatasets().map { entities ->
             entities.map { it.toDataset() }
         }
     }
 
     fun getFavoriteDatasets(): Flow<List<Dataset>> {
-        return dao.getFavoriteDatasets().map { entities ->
+        return datasetDao.getFavoriteDatasets().map { entities ->
             entities.map { it.toDataset() }
         }
     }
 
-    suspend fun refreshDatasets() {
+    suspend fun refreshDatasets(query: String? = null) {
         try {
-            val datasetIds = api.getDatasetList(apiKey)
-            val datasets = datasetIds.map { id ->
-                api.getDatasetDetails(apiKey, id)
-            }
-            dao.insertDatasets(datasets.map { it.toEntity() })
+            val response = api.getDatasets(query = query)
+            val datasets = response.result
+            datasetDao.insertDatasets(datasets.map { DatasetEntity.fromDataset(it) })
         } catch (e: Exception) {
             // Handle error
         }
     }
 
-    suspend fun searchDatasets(query: String): List<Dataset> {
+    suspend fun getDatasetDetails(id: String): Dataset? {
         return try {
-            api.searchDatasets(apiKey, query)
+            val response = api.getDatasetDetails(id)
+            response.result.firstOrNull()?.let { dataset ->
+                datasetDao.insertDataset(DatasetEntity.fromDataset(dataset))
+                dataset
+            }
         } catch (e: Exception) {
-            emptyList()
+            datasetDao.getDatasetById(id)?.toDataset()
         }
     }
 
-    suspend fun toggleFavorite(datasetId: String, isFavorite: Boolean) {
-        dao.updateFavoriteStatus(datasetId, isFavorite)
-    }
-
-    private fun Dataset.toEntity(): DatasetEntity {
-        return DatasetEntity(
-            id = id,
-            name = name,
-            title = title,
-            description = description,
-            resources = resources,
-            organization = organization,
-            tags = tags,
-            metadataCreated = Date(),
-            metadataModified = Date()
-        )
-    }
-
-    private fun DatasetEntity.toDataset(): Dataset {
-        return Dataset(
-            id = id,
-            name = name,
-            title = title,
-            description = description,
-            resources = resources,
-            organization = organization,
-            tags = tags,
-            metadata_created = metadataCreated.toString(),
-            metadata_modified = metadataModified.toString()
-        )
+    suspend fun toggleFavorite(id: String, isFavorite: Boolean) {
+        datasetDao.updateFavoriteStatus(id, isFavorite)
     }
 } 

@@ -11,8 +11,8 @@ interface DatasetDao {
     @Query("SELECT * FROM datasets WHERE isFavorite = 1")
     fun getFavoriteDatasets(): Flow<List<DatasetEntity>>
 
-    @Query("SELECT * FROM datasets WHERE id = :datasetId")
-    suspend fun getDatasetById(datasetId: String): DatasetEntity?
+    @Query("SELECT * FROM datasets WHERE id = :id")
+    suspend fun getDatasetById(id: String): DatasetEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDataset(dataset: DatasetEntity)
@@ -23,12 +23,12 @@ interface DatasetDao {
     @Update
     suspend fun updateDataset(dataset: DatasetEntity)
 
-    @Query("UPDATE datasets SET isFavorite = :isFavorite WHERE id = :datasetId")
-    suspend fun updateFavoriteStatus(datasetId: String, isFavorite: Boolean)
-
-    @Query("DELETE FROM datasets WHERE id = :datasetId")
-    suspend fun deleteDataset(datasetId: String)
+    @Delete
+    suspend fun deleteDataset(dataset: DatasetEntity)
 
     @Query("DELETE FROM datasets")
     suspend fun deleteAllDatasets()
+
+    @Query("UPDATE datasets SET isFavorite = :isFavorite WHERE id = :id")
+    suspend fun updateFavoriteStatus(id: String, isFavorite: Boolean)
 } 

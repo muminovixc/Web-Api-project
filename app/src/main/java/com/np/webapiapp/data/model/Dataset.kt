@@ -1,15 +1,22 @@
 package com.np.webapiapp.data.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
+
+@Entity(tableName = "datasets")
 data class Dataset(
+    @PrimaryKey
     val id: String,
     val name: String,
     val title: String,
-    val description: String,
+    val description: String?,
+    val organization: String?,
+    val tags: List<String>,
     val resources: List<Resource>,
-    val organization: Organization,
-    val tags: List<Tag>,
-    val metadata_created: String,
-    val metadata_modified: String
+    val metadataCreated: String?,
+    val metadataModified: String?,
+    val isFavorite: Boolean = false
 )
 
 data class Resource(
@@ -17,20 +24,14 @@ data class Resource(
     val name: String,
     val format: String,
     val url: String,
-    val description: String,
-    val created: String,
-    val last_modified: String
+    val size: Long?,
+    val created: String?,
+    val lastModified: String?
 )
 
-data class Organization(
-    val id: String,
-    val name: String,
-    val title: String,
-    val description: String
-)
-
-data class Tag(
-    val id: String,
-    val name: String,
-    val display_name: String
+data class DatasetResponse(
+    @SerializedName("result")
+    val result: List<Dataset>,
+    @SerializedName("count")
+    val count: Int
 ) 

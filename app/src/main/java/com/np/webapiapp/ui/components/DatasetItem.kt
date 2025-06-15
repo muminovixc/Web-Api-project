@@ -17,17 +17,16 @@ import com.np.webapiapp.data.model.Dataset
 @Composable
 fun DatasetItem(
     dataset: Dataset,
-    isFavorite: Boolean,
-    onItemClick: (Dataset) -> Unit,
-    onFavoriteClick: (Dataset, Boolean) -> Unit,
+    onItemClick: (String) -> Unit,
+    onFavoriteClick: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable { onItemClick(dataset) },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clickable { onItemClick(dataset.id) },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -46,34 +45,45 @@ fun DatasetItem(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = { onFavoriteClick(dataset, !isFavorite) }) {
+                IconButton(onClick = { onFavoriteClick(dataset.id, !dataset.isFavorite) }) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        imageVector = if (dataset.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (dataset.isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (dataset.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
+            
             Spacer(modifier = Modifier.height(8.dp))
+            
             Text(
-                text = dataset.description,
+                text = dataset.description ?: "",
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+            
             Spacer(modifier = Modifier.height(8.dp))
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Organization: ${dataset.organization.title}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Text(
-                    text = "Resources: ${dataset.resources.size}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                dataset.organization?.let { org ->
+                    Text(
+                        text = org,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                dataset.metadataModified?.let { date ->
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
